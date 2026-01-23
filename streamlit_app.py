@@ -1,8 +1,49 @@
 import streamlit as st
+from utils.calculator import daily_decision
 
-from utils.capacity import calculate_capacity
+st.set_page_config(page_title="Daily Latex Decision", layout="centered")
 
-st.title("Latex Management!")
-st.write("Welcome to your first Streamlit app.")
-st.button("Click me!")
-st.write("Capacity Calculation Example:")
+st.title("🧪 วิเคราะห์การจัดการน้ำยาง (รายวัน)")
+
+st.markdown("กรอกข้อมูลวันนี้ ระบบจะบอกทันทีว่าควร **ผลิต / เก็บ / ขายทิ้ง**")
+
+# -------------------------
+# INPUT
+# -------------------------
+R_today = st.number_input(
+    "น้ำยางเข้าวันนี้ (กก.)",
+    min_value=0.0,
+    value=70000.0
+)
+
+price_day_4 = st.number_input(
+    "ราคาขายยางแผ่นรมควัน (อีก 1 วัน)",
+    min_value=0.0,
+    value=52.0
+)
+
+price_day_5 = st.number_input(
+    "ราคาขายยางแผ่นรมควัน (อีก 2 วัน)",
+    min_value=0.0,
+    value=54.0
+)
+
+# -------------------------
+# RUN
+# -------------------------
+if st.button("🔍 วิเคราะห์วันนี้"):
+    result = daily_decision(
+        R_today=R_today,
+        price_today_plus_4=price_day_4,
+        price_today_plus_5=price_day_5
+    )
+
+    st.success("วิเคราะห์เสร็จแล้ว")
+
+    st.subheader("📊 ผลการตัดสินใจ")
+
+    st.write(f"🏭 ผลิต: **{result['produce']:,.0f} กก.**")
+    st.write(f"📦 เก็บ stock: **{result['hold']:,.0f} กก.**")
+    st.write(f"❌ ขายทิ้ง: **{result['dispose']:,.0f} กก.**")
+
+    st.info(f"🧠 เหตุผล: {result['reason']}")
