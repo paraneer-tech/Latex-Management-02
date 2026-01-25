@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import sys
-sys.path.append('./utils')
 from daily_decision import LatexDecisionEngine
 
 # ตั้งค่าหน้าเว็บ
@@ -17,18 +15,62 @@ engine = LatexDecisionEngine()
 
 # หัวข้อหลัก
 st.title("🏭 ระบบตัดสินใจการผลิตแผ่นยางรมควัน")
-st.markdown("---")
 
-# แสดงข้อมูลโรงงาน
+
+# แสดงวันที่ปัจจุบันมุมขวา
+col_title, col_date = st.columns([3, 1])
+with col_title:
+    pass
+with col_date:
+    st.markdown(f"**📅 วันที่:** {datetime.now().strftime('%d/%m/%Y')}")
+
+
+# ตั้งค่าโรงงาน (แก้ไขได้)
+st.subheader("⚙️ Parameters")
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
-    st.metric("กำลังการผลิต", f"{engine.PRODUCTION_CAPACITY:,} กก./วัน")
+    production_capacity = st.number_input(
+        "กำลังการผลิต (กก./วัน)",
+        min_value=10000,
+        max_value=200000,
+        value=60000,
+        step=5000
+    )
+
 with col2:
-    st.metric("Stock สูงสุด", f"{engine.MAX_STOCK:,} กก.")
+    max_stock = st.number_input(
+        "Stock สูงสุด (กก.)",
+        min_value=5000,
+        max_value=50000,
+        value=20000,
+        step=1000
+    )
+
 with col3:
-    st.metric("ต้นทุนการผลิต", f"{engine.PRODUCTION_COST} บาท/กก.")
+    production_cost = st.number_input(
+        "ต้นทุนการผลิต (บาท/กก.)",
+        min_value=0.0,
+        max_value=20.0,
+        value=5.0,
+        step=0.5,
+        format="%.2f"
+    )
+
 with col4:
-    st.metric("ระยะเวลาผลิต", f"{engine.PRODUCTION_DAYS} วัน")
+    production_days = st.number_input(
+        "ระยะเวลาผลิต (วัน)",
+        min_value=1,
+        max_value=10,
+        value=4,
+        step=1
+    )
+
+# อัพเดทค่าใน engine
+engine.PRODUCTION_CAPACITY = production_capacity
+engine.MAX_STOCK = max_stock
+engine.PRODUCTION_COST = production_cost
+engine.PRODUCTION_DAYS = production_days
 
 st.markdown("---")
 
@@ -40,15 +82,12 @@ col_left, col_right = st.columns([1, 1])
 with col_left:
     st.subheader("ข้อมูลน้ำยาง")
     
-    # วันที่
-    date_today = st.date_input("วันที่", datetime.now())
-    
     # น้ำยางที่เข้ามา
     R_today = st.number_input(
         "น้ำยางสดที่เข้ามาวันนี้ (กก.)",
         min_value=0,
         max_value=200000,
-        value=65000,
+        value=75000,
         step=1000
     )
     
@@ -56,7 +95,7 @@ with col_left:
     current_stock = st.number_input(
         "น้ำยางใน Stock ปัจจุบัน (กก.)",
         min_value=0,
-        max_value=engine.MAX_STOCK,
+        max_value=max_stock,
         value=0,
         step=1000
     )
@@ -82,8 +121,9 @@ with col_right:
     price_today_plus_5 = None
     
     if know_future_price:
+        date_today = datetime.now()
         price_today_plus_4 = st.number_input(
-            f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=4)).strftime('%d/%m/%Y')} (บาท/กก.)",
+            f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=production_days)).strftime('%d/%m/%Y')} (บาท/กก.)",
             min_value=0.0,
             value=52.0,
             step=0.5,
@@ -91,7 +131,7 @@ with col_right:
         )
         
         price_today_plus_5 = st.number_input(
-            f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=5)).strftime('%d/%m/%Y')} (บาท/กก.)",
+            f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=production_days+1)).strftime('%d/%m/%Y')} (บาท/กก.)",
             min_value=0.0,
             value=53.0,
             step=0.5,
@@ -122,14 +162,14 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
         st.metric(
             "🏭 ผลิตทันที",
             f"{decision['produce']:,.0f} กก.",
-            delta=f"{(decision['produce']/engine.PRODUCTION_CAPACITY)*100:.1f}% ของกำลังการผลิต"
+            delta=f"{(decision['produce']/production_capacity)*100:.1f}% ของกำลังการผลิต"
         )
     
     with col2:
         st.metric(
             "📦 เก็บใน Stock",
             f"{decision['hold']:,.0f} กก.",
-            delta=f"{(decision['hold']/engine.MAX_STOCK)*100:.1f}% ของ Stock สูงสุด" if decision['hold'] > 0 else None
+            delta=f"{(decision['hold']/max_stock)*100:.1f}% ของ Stock สูงสุด" if decision['hold'] > 0 else None
         )
     
     with col3:
