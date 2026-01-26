@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from daily_decision import LatexDecisionEngine
+from utils.daily_decision import LatexDecisionEngine
 
 # ตั้งค่าหน้าเว็บ
 st.set_page_config(
