@@ -68,62 +68,93 @@ class LatexDecisionEngine:
         - price_today_plus_5: ราคาแผ่นยางรมควันในวันที่ +5 (ถ้ารู้)
         
         Returns:
-        - dict ที่มี: produce (กก.), hold (กก.), dispose (กก.), reason (เหตุผล)
+        - dict ที่มี: produce (กก.), hold (กก.), dispose (กก.), reason (เหตุผล),
+                      stock_old (stock เดิม), stock_new (stock ใหม่ที่เก็บวันนี้)
         """
         result = {
             'produce': 0,
             'hold': 0,
             'dispose': 0,
+            'stock_old': current_stock,  # stock เดิมที่มีอยู่แล้ว
+            'stock_new': 0,  # stock ใหม่ที่เก็บจากน้ำยางวันนี้
             'reason': ''
         }
         
-        total_available = R_today + current_stock
+        # คำนวณน้ำยางที่ต้องการผลิตวันนี้
+        available_fresh = R_today  # น้ำยางสดที่เข้ามาวันนี้
         
-        # กรณีที่ 1: น้ำยางทั้งหมด < 60,000 กก. -> ผลิตทันที
-        if total_available <= self.PRODUCTION_CAPACITY:
-            result['produce'] = total_available
-            result['reason'] = f"น้ำยางทั้งหมด {total_available:,.0f} กก. น้อยกว่ากำลังการผลิต → ผลิตทันที"
+        # กรณีที่ 1: น้ำยางที่เข้ามาวันนี้ < 60,000 กก. -> ผลิตจากน้ำยางใหม่ทันที
+        if available_fresh <= self.PRODUCTION_CAPACITY:
+            result['produce'] = available_fresh
+            result['stock_old'] = current_stock  # stock เดิมยังคงอยู่
+            result['stock_new'] = 0  # ไม่มี stock ใหม่
+            result['reason'] = f"น้ำยางเข้ามา {available_fresh:,.0f} กก. น้อยกว่ากำลังการผลิต → ผลิตทันที (Stock เดิม {current_stock:,.0f} กก. ยังคงอยู่)"
             
-        # กรณีที่ 2: 60,000 < น้ำยาง < 80,000 กก. -> ดูจุดคุ้มทุน
-        elif total_available < 80000:
-            excess = total_available - self.PRODUCTION_CAPACITY
+        # กรณีที่ 2: 60,000 <= น้ำยางที่เข้ามา < 80,000 กก. -> ผลิต 60,000 เก็บส่วนเกิน
+        elif available_fresh < 80000:
+            excess = available_fresh - self.PRODUCTION_CAPACITY
             
-            # ผลิต 60,000 กก. ก่อน
+            # ผลิต 60,000 กก. จากน้ำยางที่เข้ามาวันนี้
             result['produce'] = self.PRODUCTION_CAPACITY
+            result['stock_old'] = current_stock  # stock เดิมยังคงอยู่
             
-            # ส่วนเกิน ดูว่าจะ hold หรือขาย
+            # ส่วนเกินจากน้ำยางวันนี้
             if price_today_plus_5 is not None:
                 # คำนวณจุดคุ้มทุนสำหรับการเก็บ 1 วัน
                 breakeven = self.calculate_breakeven_price(price_today_fresh, storage_days=1)
                 
                 if price_today_plus_5 >= breakeven:
-                    result['hold'] = min(excess, self.MAX_STOCK)
-                    if excess > self.MAX_STOCK:
-                        result['dispose'] = excess - self.MAX_STOCK
-                    result['reason'] = (f"ผลิต 60,000 กก. ทันที | ส่วนเกิน {excess:,.0f} กก.: "
-                                      f"ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) >= คุ้มทุน ({breakeven:.2f} บาท) "
-                                      f"→ เก็บ {result['hold']:,.0f} กก.")
+                    # คุ้มค่าเก็บ - ตรวจสอบพื้นที่ว่าง
+                    space_available = self.MAX_STOCK - current_stock
+                    can_hold = min(excess, space_available)
+                    
+                    result['stock_new'] = can_hold
+                    
+                    if excess > space_available:
+                        result['dispose'] = excess - space_available
+                        result['reason'] = (f"น้ำยางเข้า {available_fresh:,.0f} กก. → ผลิต {self.PRODUCTION_CAPACITY:,} กก. | "
+                                          f"ส่วนเกิน {excess:,.0f} กก.: ราคาคุ้มทุน → เก็บใหม่ {can_hold:,.0f} กก., "
+                                          f"Stock เต็ม ขายทิ้ง {result['dispose']:,.0f} กก. (Stock เดิม {current_stock:,.0f} กก. ยังคงอยู่)")
+                    else:
+                        result['reason'] = (f"น้ำยางเข้า {available_fresh:,.0f} กก. → ผลิต {self.PRODUCTION_CAPACITY:,} กก. | "
+                                          f"ส่วนเกิน {excess:,.0f} กก.: ราคาคุ้มทุน ({price_today_plus_5:.2f} >= {breakeven:.2f} บาท) "
+                                          f"→ เก็บใหม่ {can_hold:,.0f} กก. (Stock เดิม {current_stock:,.0f} กก. + ใหม่ {can_hold:,.0f} กก. = {current_stock + can_hold:,.0f} กก.)")
                 else:
+                    # ไม่คุ้มค่า ขายทิ้ง
                     result['dispose'] = excess
-                    result['reason'] = (f"ผลิต 60,000 กก. ทันที | ส่วนเกิน {excess:,.0f} กก.: "
-                                      f"ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) < คุ้มทุน ({breakeven:.2f} บาท) "
-                                      f"→ ขายทิ้ง {result['dispose']:,.0f} กก.")
+                    result['stock_new'] = 0
+                    result['reason'] = (f"น้ำยางเข้า {available_fresh:,.0f} กก. → ผลิต {self.PRODUCTION_CAPACITY:,} กก. | "
+                                      f"ส่วนเกิน {excess:,.0f} กก.: ราคาไม่คุ้มทุน ({price_today_plus_5:.2f} < {breakeven:.2f} บาท) "
+                                      f"→ ขายทิ้ง {result['dispose']:,.0f} กก. (Stock เดิม {current_stock:,.0f} กก. ยังคงอยู่)")
             else:
-                # ถ้าไม่รู้ราคาอนาคต ให้เก็บไว้ก่อน (ถ้าไม่เกิน stock)
-                result['hold'] = min(excess, self.MAX_STOCK)
-                if excess > self.MAX_STOCK:
-                    result['dispose'] = excess - self.MAX_STOCK
-                result['reason'] = (f"ผลิต 60,000 กก. ทันที | ส่วนเกิน {excess:,.0f} กก.: "
-                                  f"ไม่ทราบราคาอนาคต → เก็บ {result['hold']:,.0f} กก., "
-                                  f"ขายส่วนเกิน stock {result['dispose']:,.0f} กก.")
+                # ถ้าไม่รู้ราคาอนาคต ให้เก็บไว้ (ถ้าไม่เกิน stock)
+                space_available = self.MAX_STOCK - current_stock
+                can_hold = min(excess, space_available)
+                
+                result['stock_new'] = can_hold
+                
+                if excess > space_available:
+                    result['dispose'] = excess - space_available
+                    
+                result['reason'] = (f"น้ำยางเข้า {available_fresh:,.0f} กก. → ผลิต {self.PRODUCTION_CAPACITY:,} กก. | "
+                                  f"ส่วนเกิน {excess:,.0f} กก.: ไม่ทราบราคา → เก็บใหม่ {can_hold:,.0f} กก., "
+                                  f"ขายส่วนเกิน {result['dispose']:,.0f} กก. (Stock รวม {current_stock + can_hold:,.0f} กก.)")
         
-        # กรณีที่ 3: น้ำยาง >= 80,000 กก. -> ขายส่วนเกินทิ้งทันที
+        # กรณีที่ 3: น้ำยางที่เข้ามา >= 80,000 กก. -> ผลิต 60,000 ขายส่วนเกินทิ้ง
         else:
             result['produce'] = self.PRODUCTION_CAPACITY
-            result['hold'] = self.MAX_STOCK
-            result['dispose'] = total_available - self.PRODUCTION_CAPACITY - self.MAX_STOCK
-            result['reason'] = (f"น้ำยางทั้งหมด {total_available:,.0f} กก. เกิน 80,000 → "
-                              f"ผลิต 60,000 กก., เก็บ 20,000 กก., ขายทิ้ง {result['dispose']:,.0f} กก.")
+            result['stock_old'] = current_stock
+            
+            excess_after_production = available_fresh - self.PRODUCTION_CAPACITY
+            space_available = self.MAX_STOCK - current_stock
+            can_hold = min(excess_after_production, space_available)
+            
+            result['stock_new'] = can_hold
+            result['dispose'] = excess_after_production - can_hold
+            
+            result['reason'] = (f"น้ำยางเข้า {available_fresh:,.0f} กก. เกิน 80,000 → "
+                              f"ผลิต {self.PRODUCTION_CAPACITY:,} กก., เก็บใหม่ {result['stock_new']:,.0f} กก., "
+                              f"ขายทิ้ง {result['dispose']:,.0f} กก. (Stock รวม {current_stock + result['stock_new']:,.0f} กก.)")
         
         return result
     
