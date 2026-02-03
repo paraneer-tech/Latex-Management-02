@@ -27,7 +27,7 @@ with col_date:
 st.markdown("---")
 
 # ตั้งค่าโรงงาน (แก้ไขได้)
-st.subheader("⚙️ ตั้งค่าพารามิเตอร์โรงงาน")
+st.subheader("⚙️ Parameters")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -423,5 +423,3 @@ with st.sidebar:
     - ค่าขนส่ง 17,000 บาท/20,000 กก.
     """)
     
-    st.markdown("---")
-    st.caption("พัฒนาโดย: ระบบสนับสนุนการตัดสินใจ")
