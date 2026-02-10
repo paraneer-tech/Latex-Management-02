@@ -7,27 +7,188 @@ from utils.daily_decision import LatexDecisionEngine
 st.set_page_config(
     page_title="ระบบตัดสินใจการผลิตยาง",
     page_icon="🏭",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
+
+# Custom CSS สำหรับตัวเลขที่เข้มขึ้น
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
+    
+    /* ฟอนต์หลัก */
+    html, body, [class*="css"], .stMarkdown {
+        font-family: 'Sarabun', sans-serif !important;
+    }
+    
+    /* ตัวเลขใน Metrics - ทำให้เข้มมาก */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem !important;
+        font-weight: 800 !important;
+        color: #1a202c !important;
+        letter-spacing: -0.5px !important;
+    }
+    
+    /* Label ของ Metrics */
+    [data-testid="stMetricLabel"] {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: #4a5568 !important;
+    }
+    
+    /* Delta (ตัวเลขเปลี่ยนแปลง) */
+    [data-testid="stMetricDelta"] {
+        font-size: 0.9rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* ตัวเลขในตาราง */
+    .stTable td {
+        font-weight: 600 !important;
+        font-size: 1.05rem !important;
+    }
+    
+    /* ตัวเลขใน Info/Success/Warning box */
+    .stAlert strong, .stAlert b {
+        font-weight: 800 !important;
+        color: #1a202c !important;
+    }
+    
+    /* ตัวเลขทั่วไป */
+    p strong, p b, li strong, li b {
+        font-weight: 700 !important;
+    }
+    
+    /* หัวข้อ */
+    h1 {
+        color: #1a202c !important;
+        font-weight: 800 !important;
+        font-size: 3rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    h2 {
+        color: #2d3748;
+        font-weight: 700 !important;
+        font-size: 1.8rem !important;
+        margin-top: 2rem !important;
+    }
+    
+    h3 {
+        color: #2d3748;
+        font-weight: 700 !important;
+        font-size: 1.4rem !important;
+    }
+    
+    /* ปุ่ม */
+    .stButton>button {
+        background-color: #dc2626 !important;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 2rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        background-color: #b91c1c !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Input fields */
+    .stNumberInput>div>div>input {
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        padding: 0.5rem;
+        color: #1a202c;
+    }
+    
+    .stNumberInput>div>div>input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Label ของ Input */
+    .stNumberInput label {
+        font-weight: 600 !important;
+        color: #2d3748 !important;
+    }
+    
+    /* Info boxes */
+    .stAlert {
+        border-radius: 10px;
+        border-left: 4px solid;
+        font-weight: 500;
+    }
+    
+    .stSuccess {
+        background-color: #f0fdf4;
+        border-left-color: #22c55e;
+    }
+    
+    .stWarning {
+        background-color: #fffbeb;
+        border-left-color: #f59e0b;
+    }
+    
+    .stInfo {
+        background-color: #eff6ff;
+        border-left-color: #3b82f6;
+    }
+    
+    /* Checkbox */
+    .stCheckbox {
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+    
+    /* ซ่อน Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Spacing */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # สร้าง instance ของ engine
 engine = LatexDecisionEngine()
 
-# หัวข้อหลัก
+# หัวข้อหลักพร้อมไอคอน
 st.title("🏭 ระบบตัดสินใจการผลิตยางแผ่นรมควัน")
-st.markdown("---")
+
 
 # แสดงวันที่ปัจจุบันมุมขวา
-col_title, col_date = st.columns([3, 1])
-with col_title:
-    pass
-with col_date:
-    st.markdown(f"**📅 วันที่:** {datetime.now().strftime('%d/%m/%Y')}")
+st.markdown(f"""
+<div style='text-align: right; margin-bottom: 1rem;'>
+    <span style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                 color: white; 
+                 padding: 0.5rem 1.5rem; 
+                 border-radius: 20px; 
+                 font-weight: 600;
+                 font-size: 1rem;'>
+        📅 {datetime.now().strftime('%d/%m/%Y')}
+    </span>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ตั้งค่าโรงงาน (แก้ไขได้)
-st.subheader("⚙️ Parameters")
+st.markdown("""
+<div style='margin-bottom: 1rem;'>
+    <h2>⚙️ ตั้งค่าพารามิเตอร์โรงงาน</h2>
+</div>
+""", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -76,12 +237,16 @@ engine.PRODUCTION_DAYS = production_days
 st.markdown("---")
 
 # ส่วนกรอกข้อมูล
-st.header("📊 กรอกข้อมูลประจำวัน")
+st.markdown("""
+<div style='margin-bottom: 1rem;'>
+    <h2>📊 กรอกข้อมูลประจำวัน</h2>
+</div>
+""", unsafe_allow_html=True)
 
-col_left, col_right = st.columns([1, 1])
+col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
-    st.subheader("ข้อมูลน้ำยาง")
+    st.markdown("### 📦 ข้อมูลน้ำยาง")
     
     # น้ำยางที่เข้ามา
     R_today = st.number_input(
@@ -104,7 +269,7 @@ with col_left:
     st.info(f"💡 น้ำยางรวมทั้งหมด: **{R_today + current_stock:,} กก.**")
 
 with col_right:
-    st.subheader("ราคา")
+    st.markdown("### 💰 ราคา")
     
     # ราคาน้ำยางสด
     price_today_fresh = st.number_input(
@@ -154,7 +319,11 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     )
     
     # แสดงผลการตัดสินใจ
-    st.header("✅ ผลการวิเคราะห์")
+    st.markdown("""
+    <div style='margin: 2rem 0 1rem 0;'>
+        <h2>✅ ผลการวิเคราะห์</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     # แสดงการตัดสินใจหลัก
     col1, col2, col3 = st.columns(3)
@@ -187,7 +356,11 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     # แสดง Stock Update (ถ้ามี stock)
     if decision['stock_old'] > 0 or decision['stock_new'] > 0:
         st.markdown("---")
-        st.subheader("📊 Stock Update")
+        st.markdown("""
+        <div style='margin-bottom: 1rem;'>
+            <h2>📊 Stock Update</h2>
+        </div>
+        """, unsafe_allow_html=True)
         
         col_stock1, col_stock2, col_stock3 = st.columns(3)
         
@@ -225,7 +398,11 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     
     # คำนวณต้นทุนและรายได้
     st.markdown("---")
-    st.subheader("💰 การวิเคราะห์ทางการเงิน")
+    st.markdown("""
+    <div style='margin-bottom: 1rem;'>
+        <h2>💰 การวิเคราะห์ทางการเงิน</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     # ตัวแปรเก็บค่ากำไร
     profit_production = 0
@@ -277,7 +454,11 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     # เปรียบเทียบกำไร (แสดงเสมอถ้ามีการผลิต)
     if decision['produce'] > 0 and price_today_plus_4:
         st.markdown("---")
-        st.subheader("📊 การเปรียบเทียบกำไร")
+        st.markdown("""
+        <div style='margin-bottom: 1rem;'>
+            <h2>📊 การเปรียบเทียบกำไร</h2>
+        </div>
+        """, unsafe_allow_html=True)
         
         # คำนวณกำไรต่อกิโลกรัมจากการผลิต
         profit_per_kg_production = profit_production / decision['produce']
@@ -390,5 +571,4 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
                 st.success(f"✅ ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) สูงกว่าจุดคุ้มทุน → คุ้มค่าที่จะเก็บ")
             else:
                 st.warning(f"⚠️ ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) ต่ำกว่าจุดคุ้มทุน → ไม่คุ้มค่าที่จะเก็บ")
-
 
