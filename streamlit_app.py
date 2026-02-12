@@ -413,25 +413,21 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     # สำหรับการผลิตแผ่นยาง
     if decision['produce'] > 0 and price_today_plus_4:
         has_production = True
-        # คำนวณต้นทุนการผลิต
-        cost_latex = decision['produce'] * price_today_fresh  # ต้นทุนน้ำยางสด
+        # คำนวณต้นทุนและรายได้
         cost_production = decision['produce'] * engine.PRODUCTION_COST  # ต้นทุนการผลิต
-        cost_storage = 0  # ค่าเก็บรักษา (ถ้าผลิตทันทีจะไม่มี)
-        
-        total_cost_production = cost_latex + cost_production + cost_storage
-        revenue_production = decision['produce'] * price_today_plus_4
-        profit_production = revenue_production - total_cost_production
+        revenue_production = decision['produce'] * price_today_plus_4  # รายได้จากขาย
+        profit_production = revenue_production - cost_production
         
         st.write("**📊 การผลิตแผ่นยางรมควัน:**")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("ต้นทุนน้ำยางสด", f"{cost_latex:,.2f} บาท")
+            st.metric("ต้นทุนการผลิต", f"{cost_production:,.2f} บาท",
+                     help=f"{engine.PRODUCTION_COST:.2f} บาท/กก. × {decision['produce']:,.0f} กก.")
         with col2:
-            st.metric("ต้นทุนการผลิต", f"{cost_production:,.2f} บาท")
+            st.metric("รายได้จากขาย", f"{revenue_production:,.2f} บาท",
+                     help=f"{price_today_plus_4:.2f} บาท/กก. × {decision['produce']:,.0f} กก.")
         with col3:
-            st.metric("รายได้จากขาย", f"{revenue_production:,.2f} บาท")
-        with col4:
-            st.metric("กำไรสุทธิ", f"{profit_production:,.2f} บาท",
+            st.metric("รายได้สุทธิ", f"{profit_production:,.2f} บาท",
                      delta=f"{profit_production:,.2f} บาท")
     
     # สำหรับการขายน้ำยางสด
@@ -448,108 +444,186 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
         with col2:
             st.metric("รายได้จากขาย", f"{fresh_revenue:,.2f} บาท")
         with col3:
-            st.metric("กำไรสุทธิ", f"{profit_fresh_sale:,.2f} บาท",
+            st.metric("รายได้สุทธิ", f"{profit_fresh_sale:,.2f} บาท",
                      delta=f"{profit_fresh_sale:,.2f} บาท")
     
-    # เปรียบเทียบกำไร (แสดงเสมอถ้ามีการผลิต)
-    if decision['produce'] > 0 and price_today_plus_4:
+    # เปรียบเทียบทางเลือกสำหรับน้ำยางส่วนเกิน (60,000-80,000 กก.)
+    if decision['produce'] > 0 and price_today_plus_4 and (R_today + current_stock) > production_capacity and (R_today + current_stock) < 80000:
         st.markdown("---")
         st.markdown("""
         <div style='margin-bottom: 1rem;'>
-            <h2>📊 การเปรียบเทียบกำไร</h2>
+            <h2>📊 การเปรียบเทียบ: น้ำยางส่วนเกิน</h2>
         </div>
         """, unsafe_allow_html=True)
         
-        # คำนวณกำไรต่อกิโลกรัมจากการผลิต
-        profit_per_kg_production = profit_production / decision['produce']
+        # คำนวณน้ำยางส่วนเกิน (นับรวม stock เดิม)
+        total_latex = R_today + current_stock
+        excess_amount = total_latex - production_capacity
         
-        # คำนวณกำไรต่อกิโลกรัมจากการขายน้ำยางสดสมมติ
-        transport_cost_per_kg = engine.TRANSPORT_COST_PER_20K / 20000
-        profit_per_kg_fresh_hypothetical = price_today_fresh - transport_cost_per_kg
+        st.write(f"**🔍 วิเคราะห์สำหรับน้ำยางส่วนเกิน {excess_amount:,.0f} กก.**")
+        st.write("")
         
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(
-                "🏭 กำไร/กก. (ผลิตแผ่นยาง)",
-                f"{profit_per_kg_production:.2f} บาท/กก.",
-                help=f"จากการผลิต {decision['produce']:,.0f} กก."
-            )
-        
-        with col2:
-            st.metric(
-                "🚚 กำไร/กก. (ขายน้ำยางสด)",
-                f"{profit_per_kg_fresh_hypothetical:.2f} บาท/กก.",
-                help="กำไรหากขายน้ำยางสดแทน"
-            )
-        
-        with col3:
-            diff = profit_per_kg_production - profit_per_kg_fresh_hypothetical
-            st.metric(
-                "ส่วนต่าง",
-                f"{abs(diff):.2f} บาท/กก.",
-                delta=f"{diff:+.2f} บาท/กก." if diff >= 0 else f"{diff:.2f} บาท/กก.",
-                delta_color="normal" if diff >= 0 else "inverse"
-            )
-        
-        # แสดงข้อสรุป
-        if profit_per_kg_production > profit_per_kg_fresh_hypothetical:
-            saved_by_production = (profit_per_kg_production - profit_per_kg_fresh_hypothetical) * decision['produce']
-            st.success(f"✅ **การผลิตแผ่นยางรมควันคุ้มค่ากว่า** การขายน้ำยางสดถึง **{profit_per_kg_production - profit_per_kg_fresh_hypothetical:.2f} บาท/กก.** "
-                      f"(ประหยัด/ได้กำไรเพิ่ม **{saved_by_production:,.2f} บาท** จากการผลิต {decision['produce']:,.0f} กก.)")
-        elif profit_per_kg_fresh_hypothetical > profit_per_kg_production:
-            loss_by_production = (profit_per_kg_fresh_hypothetical - profit_per_kg_production) * decision['produce']
-            st.warning(f"⚠️ **การขายน้ำยางสดคุ้มค่ากว่า** การผลิตถึง **{profit_per_kg_fresh_hypothetical - profit_per_kg_production:.2f} บาท/กก.** "
-                      f"(เสียโอกาสกำไร **{loss_by_production:,.2f} บาท** จากการผลิต {decision['produce']:,.0f} กก.)")
-        else:
-            st.info("ℹ️ กำไรต่อกิโลกรัมเท่ากันทั้ง 2 วิธี")
-        
-        # แสดงตารางเปรียบเทียบรายละเอียด
-        st.write("**รายละเอียดการเปรียบเทียบ:**")
-        
-        comparison_data = {
-            "หัวข้อ": [
-                "ปริมาณ (กก.)",
-                "รายได้/กก.",
-                "ต้นทุน/กก.",
-                "กำไร/กก.",
-                "กำไรรวม (บาท)"
-            ],
-            "ผลิตแผ่นยาง": [
-                f"{decision['produce']:,.0f}",
-                f"{price_today_plus_4:.2f}",
-                f"{price_today_fresh + engine.PRODUCTION_COST:.2f}",
-                f"{profit_per_kg_production:.2f}",
-                f"{profit_production:,.2f}"
-            ],
-            "ขายน้ำยางสด": [
-                f"{decision['produce']:,.0f}",
-                f"{price_today_fresh:.2f}",
-                f"{transport_cost_per_kg:.2f}",
-                f"{profit_per_kg_fresh_hypothetical:.2f}",
-                f"{profit_per_kg_fresh_hypothetical * decision['produce']:,.2f}"
-            ]
-        }
-        
-        df_comparison = pd.DataFrame(comparison_data)
-        st.table(df_comparison)
-        
-        # ถ้ามีการขายน้ำยางสดจริง ให้แสดงกำไรรวม
-        if has_disposal:
-            st.write("**สรุปกำไรรวมทั้งหมด:**")
-            total_profit = profit_production + profit_fresh_sale
-            col1, col2, col3 = st.columns(3)
+        # ===== ทางเลือกที่ 1: เก็บไว้ผลิตในวันถัดไป =====
+        if price_today_plus_5:
+            # รายได้
+            hold_revenue = excess_amount * price_today_plus_5
             
-            with col1:
-                st.metric("กำไรจากผลิต", f"{profit_production:,.2f} บาท")
-            with col2:
-                st.metric("กำไรจากขายทิ้ง", f"{profit_fresh_sale:,.2f} บาท")
-            with col3:
-                st.metric("กำไรรวม", f"{total_profit:,.2f} บาท",
-                         delta=f"{total_profit:,.2f} บาท")
+            # ค่าใช้จ่ายเพิ่มเติม (ไม่นับต้นทุนน้ำยาง)
+            hold_storage_cost = excess_amount * engine.calculate_storage_cost(1)
+            hold_production_cost = excess_amount * engine.PRODUCTION_COST
+            hold_additional_cost = hold_storage_cost + hold_production_cost
+            
+            # กำไรสุทธิ = รายได้ - ค่าใช้จ่ายเพิ่มเติม
+            hold_profit = hold_revenue - hold_additional_cost
+            hold_profit_per_kg = hold_profit / excess_amount
+        
+        # ===== ทางเลือกที่ 2: ขายน้ำยางสดทันที =====
+        # รายได้
+        sell_revenue = excess_amount * price_today_fresh
+        
+        # ค่าใช้จ่ายเพิ่มเติม (เฉพาะค่าขนส่ง)
+        sell_transport_cost = engine.calculate_fresh_latex_sale_cost(excess_amount)
+        
+        # กำไรสุทธิ = รายได้ - ค่าขนส่ง
+        sell_profit = sell_revenue - sell_transport_cost
+        sell_profit_per_kg = sell_profit / excess_amount
+        
+        # แสดงการเปรียบเทียบแบบ Side-by-Side
+        if price_today_plus_5:
+            col_left, col_right = st.columns(2, gap="large")
+            
+            with col_left:
+                st.markdown("### 💾 ทางเลือกที่ 1: เก็บไว้ผลิตในวันถัดไป")
+                st.markdown(f"""
+                <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            color: white; 
+                            padding: 1.5rem; 
+                            border-radius: 15px;
+                            margin-bottom: 1rem;'>
+                    <h3 style='color: white; margin: 0 0 1rem 0;'>💰 กำไรรวม</h3>
+                    <h1 style='color: white; margin: 0; font-size: 2.5rem;'>{hold_profit:,.2f} บาท</h1>
+                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>({hold_profit_per_kg:.2f} บาท/กก.)</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.write("**📝 รายละเอียด:**")
+                st.write(f"- ปริมาณ: {excess_amount:,.0f} กก.")
+                st.write(f"- ราคาขาย: {price_today_plus_5:.2f} บาท/กก.")
+                st.write(f"- รายได้รวม: {hold_revenue:,.2f} บาท")
+                st.write("")
+                st.write("**💸 ค่าใช้จ่ายเพิ่มเติม:**")
+                st.write(f"- ค่าเก็บรักษา 1 วัน: {hold_storage_cost:,.2f} บาท")
+                st.write(f"  ({engine.calculate_storage_cost(1):.2f} บาท/กก.)")
+                st.write(f"- ต้นทุนการผลิต: {hold_production_cost:,.2f} บาท")
+                st.write(f"  ({engine.PRODUCTION_COST:.2f} บาท/กก.)")
+                st.write(f"- **รวมค่าใช้จ่าย: {hold_additional_cost:,.2f} บาท**")
+                st.write("")
+                st.write(f"**🎯 สูตร:** {hold_revenue:,.2f} (รายได้) - {hold_additional_cost:,.2f} (ค่าใช้จ่าย) = **{hold_profit:,.2f} บาท**")
+            
+            with col_right:
+                st.markdown("### 🚚 ทางเลือกที่ 2: ขายน้ำยางสดทันที")
+                st.markdown(f"""
+                <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+                            color: white; 
+                            padding: 1.5rem; 
+                            border-radius: 15px;
+                            margin-bottom: 1rem;'>
+                    <h3 style='color: white; margin: 0 0 1rem 0;'>💰 กำไรรวม</h3>
+                    <h1 style='color: white; margin: 0; font-size: 2.5rem;'>{sell_profit:,.2f} บาท</h1>
+                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>({sell_profit_per_kg:.2f} บาท/กก.)</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.write("**📝 รายละเอียด:**")
+                st.write(f"- ปริมาณ: {excess_amount:,.0f} กก.")
+                st.write(f"- ราคาขาย: {price_today_fresh:.2f} บาท/กก.")
+                st.write(f"- รายได้รวม: {sell_revenue:,.2f} บาท")
+                st.write("")
+                st.write("**💸 ค่าใช้จ่ายเพิ่มเติม:**")
+                st.write(f"- ค่าขนส่ง: {sell_transport_cost:,.2f} บาท")
+                transport_per_kg = sell_transport_cost / excess_amount
+                st.write(f"  ({transport_per_kg:.2f} บาท/กก.)")
+                st.write(f"- **รวมค่าใช้จ่าย: {sell_transport_cost:,.2f} บาท**")
+                st.write("")
+                st.write(f"**🎯 สูตร:** {sell_revenue:,.2f} (รายได้) - {sell_transport_cost:,.2f} (ค่าขนส่ง) = **{sell_profit:,.2f} บาท**")
+            
+            # สรุปผลเปรียบเทียบ
+            st.markdown("---")
+            profit_diff = hold_profit - sell_profit
+            profit_diff_per_kg = hold_profit_per_kg - sell_profit_per_kg
+            
+            if profit_diff > 0:
+                st.success(f"""
+                ### ✅ **ผลสรุป: เก็บไว้ผลิตคุ้มค่ากว่า!**
+                
+                - 💰 **ได้กำไรมากกว่า: {profit_diff:,.2f} บาท** ({profit_diff_per_kg:+.2f} บาท/กก.)
+                - 📈 เพิ่มกำไร **{(profit_diff/sell_profit*100):.1f}%** เมื่อเทียบกับการขายสด
+                - 🎯 คำแนะนำ: **ควรเก็บไว้ผลิต** เพื่อกำไรสูงสุด
+                """)
+            elif profit_diff < 0:
+                st.error(f"""
+                ### ⚠️ **ผลสรุป: ขายน้ำยางสดคุ้มค่ากว่า!**
+                
+                - 💸 **เสียโอกาสกำไร: {abs(profit_diff):,.2f} บาท** ({profit_diff_per_kg:.2f} บาท/กก.)
+                - 📉 ขาดทุนกว่า **{abs(profit_diff/hold_profit*100):.1f}%** หากเก็บไว้ผลิต
+                - 🎯 คำแนะนำ: **ควรขายน้ำยางสดทิ้ง** เพื่อกำไรสูงสุด
+                - ⚡ ราคาคุ้มทุน: {engine.calculate_breakeven_price(price_today_fresh, 1):.2f} บาท/กก. (ราคาวันที่ +5: {price_today_plus_5:.2f} บาท/กก.)
+                """)
+            else:
+                st.info("""
+                ### ℹ️ **ผลสรุป: กำไรเท่ากัน**
+                
+                - 💰 ทั้ง 2 ทางเลือกให้กำไรเท่ากัน
+                - 🎯 คำแนะนำ: เลือกได้ตามความสะดวก
+                """)
+            
+            # แสดงตารางเปรียบเทียบ
+            st.markdown("### 📋 ตารางเปรียบเทียบรายละเอียด")
+            comparison_data = {
+                "รายการ": [
+                    "ปริมาณ (กก.)",
+                    "ราคาขาย (บาท/กก.)",
+                    "รายได้รวม (บาท)",
+                    "ค่าใช้จ่ายเพิ่มเติม (บาท)",
+                    "กำไรสุทธิ (บาท)",
+                    "กำไร/กก. (บาท)"
+                ],
+                "เก็บไว้ผลิต 💾": [
+                    f"{excess_amount:,.0f}",
+                    f"{price_today_plus_5:,.2f}",
+                    f"{hold_revenue:,.2f}",
+                    f"{hold_additional_cost:,.2f}",
+                    f"{hold_profit:,.2f}",
+                    f"{hold_profit_per_kg:.2f}"
+                ],
+                "ขายสดทันที 🚚": [
+                    f"{excess_amount:,.0f}",
+                    f"{price_today_fresh:,.2f}",
+                    f"{sell_revenue:,.2f}",
+                    f"{sell_transport_cost:,.2f}",
+                    f"{sell_profit:,.2f}",
+                    f"{sell_profit_per_kg:.2f}"
+                ],
+                "ส่วนต่าง": [
+                    "-",
+                    f"{price_today_plus_5 - price_today_fresh:+.2f}",
+                    f"{hold_revenue - sell_revenue:+,.2f}",
+                    f"{hold_additional_cost - sell_transport_cost:+,.2f}",
+                    f"{profit_diff:+,.2f}",
+                    f"{profit_diff_per_kg:+.2f}"
+                ]
+            }
+            
+            df_comparison = pd.DataFrame(comparison_data)
+            st.dataframe(df_comparison, use_container_width=True, hide_index=True)
+        else:
+            # ถ้าไม่มีราคา day+5 แสดงแค่การขายทิ้ง
+            st.warning("⚠️ ไม่สามารถเปรียบเทียบได้ เนื่องจากไม่ทราบราคาแผ่นยางวันที่ +5")
+            st.write(f"**กำไรจากการขายสดทันที:** {sell_profit:,.2f} บาท ({sell_profit_per_kg:.2f} บาท/กก.)")
     
-    # ถ้ามีการเก็b stock
+    # ถ้ามีการเก็บ stock
     if decision['stock_old'] > 0 or decision['stock_new'] > 0:
+        st.markdown("---")
         st.write("**ค่าเก็บรักษา Stock:**")
         
         # ค่าเก็บรักษา stock เดิม (นับต่อจากวันที่เคยเก็บ)
@@ -571,4 +645,3 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
                 st.success(f"✅ ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) สูงกว่าจุดคุ้มทุน → คุ้มค่าที่จะเก็บ")
             else:
                 st.warning(f"⚠️ ราคาวันที่ +5 ({price_today_plus_5:.2f} บาท) ต่ำกว่าจุดคุ้มทุน → ไม่คุ้มค่าที่จะเก็บ")
-
