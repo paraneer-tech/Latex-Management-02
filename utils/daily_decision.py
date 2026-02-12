@@ -95,7 +95,7 @@ class LatexDecisionEngine:
             result['produce'] = total_latex
             result['stock_old'] = 0  # ใช้ stock เดิมหมด
             result['stock_new'] = 0  # ไม่มี stock ใหม่
-            result['reason'] = f"น้ำยางรวม {total_latex:,.0f} กก. (Stock เดิม {current_stock:,.0f} + ใหม่ {available_fresh:,.0f}) น้อยกว่าหรือเท่ากับกำลังการผลิต → ผลิทหมด"
+            result['reason'] = f"น้ำยางรวม {total_latex:,.0f} กก. (Stock เดิม {current_stock:,.0f} + ใหม่ {available_fresh:,.0f}) น้อยกว่าหรือเท่ากับกำลังการผลิต → ผลิตหมด"
             
         # กรณีที่ 2: 60,000 < น้ำยางรวม < 80,000 กก. -> ผลิต 60,000 (ใช้ stock เดิมก่อน)
         elif total_latex < 80000:
