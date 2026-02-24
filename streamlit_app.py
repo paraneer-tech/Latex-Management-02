@@ -147,6 +147,17 @@ st.markdown("""
         font-size: 1.05rem;
         font-weight: 600;
     }
+
+    /* ขนาดฟอนต์รายละเอียดใต้ส่วนเปรียบเทียบน้ำยางส่วนเกิน */
+    .excess-detail p, .excess-detail li, .excess-detail div {
+        font-size: 1.2rem !important;
+        font-weight: 400 !important;
+    }
+    /* ตัวหนาเฉพาะหัวข้อ รายละเอียด / ค่าใช้จ่ายเพิ่มเติม */
+    .excess-detail .section-title {
+        font-size: 1.2rem !important;
+        font-weight: 700 !important;
+    }
     
     /* ซ่อน Streamlit branding */
     #MainMenu {visibility: hidden;}
@@ -183,10 +194,10 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# ตั้งค่าโรงงาน (แก้ไขได้)
+# ตั้งค่าโรงงาน (แก้ไขได้ ไม่จำกัดค่า)
 st.markdown("""
 <div style='margin-bottom: 1rem;'>
-    <h2>⚙️ ตั้งค่าพารามิเตอร์โรงงาน</h2>
+    <h2>⚙️ ตั้งค่าพารามิเตอร์</h2>
 </div>
 """, unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
@@ -194,8 +205,8 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     production_capacity = st.number_input(
         "กำลังการผลิต (กก./วัน)",
-        min_value=10000,
-        max_value=200000,
+        min_value=0,
+        max_value=None,
         value=60000,
         step=5000
     )
@@ -203,8 +214,8 @@ with col1:
 with col2:
     max_stock = st.number_input(
         "Stock สูงสุด (กก.)",
-        min_value=5000,
-        max_value=50000,
+        min_value=0,
+        max_value=None,
         value=20000,
         step=1000
     )
@@ -213,7 +224,7 @@ with col3:
     production_cost = st.number_input(
         "ต้นทุนการผลิต (บาท/กก.)",
         min_value=0.0,
-        max_value=20.0,
+        max_value=None,
         value=5.0,
         step=0.5,
         format="%.2f"
@@ -223,7 +234,7 @@ with col4:
     production_days = st.number_input(
         "ระยะเวลาผลิต (วัน)",
         min_value=1,
-        max_value=10,
+        max_value=None,
         value=4,
         step=1
     )
@@ -248,20 +259,18 @@ col_left, col_right = st.columns([1, 1], gap="large")
 with col_left:
     st.markdown("### 📦 ข้อมูลน้ำยาง")
     
-    # น้ำยางที่เข้ามา
     R_today = st.number_input(
         "น้ำยางสดที่เข้ามาวันนี้ (กก.)",
         min_value=0,
-        max_value=200000,
+        max_value=None,
         value=75000,
         step=1000
     )
     
-    # Stock ปัจจุบัน
     current_stock = st.number_input(
         "น้ำยางใน Stock ปัจจุบัน (กก.)",
         min_value=0,
-        max_value=max_stock,
+        max_value=None,
         value=0,
         step=1000
     )
@@ -271,17 +280,16 @@ with col_left:
 with col_right:
     st.markdown("### 💰 ราคา")
     
-    # ราคาน้ำยางสด
     price_today_fresh = st.number_input(
         "ราคาน้ำยางสดวันนี้ (บาท/กก.)",
         min_value=0.0,
+        max_value=None,
         value=45.0,
         step=0.5,
         format="%.2f"
     )
     
-    # ราคาแผ่นยางรมควัน (ถ้ามี)
-    know_future_price = st.checkbox("ทราบราคาแผ่นยางรมควันในอนาคต")
+    know_future_price = st.checkbox("ทราบราคายางแผ่นรมควันในอนาคต")
     
     price_today_plus_4 = None
     price_today_plus_5 = None
@@ -291,6 +299,7 @@ with col_right:
         price_today_plus_4 = st.number_input(
             f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=production_days)).strftime('%d/%m/%Y')} (บาท/กก.)",
             min_value=0.0,
+            max_value=None,
             value=52.0,
             step=0.5,
             format="%.2f"
@@ -299,6 +308,7 @@ with col_right:
         price_today_plus_5 = st.number_input(
             f"ราคาแผ่นยางรมควันวันที่ {(date_today + timedelta(days=production_days+1)).strftime('%d/%m/%Y')} (บาท/กก.)",
             min_value=0.0,
+            max_value=None,
             value=53.0,
             step=0.5,
             format="%.2f"
@@ -309,7 +319,6 @@ st.markdown("---")
 # คำนวณและแสดงผล
 if st.button("🔍 วิเคราะห์และแนะนำการตัดสินใจ", type="primary", use_container_width=True):
     
-    # เรียกใช้ logic
     decision = engine.daily_decision(
         R_today=R_today,
         current_stock=current_stock,
@@ -318,28 +327,26 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
         price_today_plus_5=price_today_plus_5
     )
     
-    # แสดงผลการตัดสินใจ
     st.markdown("""
     <div style='margin: 2rem 0 1rem 0;'>
         <h2>✅ ผลการวิเคราะห์</h2>
     </div>
     """, unsafe_allow_html=True)
     
-    # แสดงการตัดสินใจหลัก
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric(
             "🏭 ผลิตทันที",
             f"{decision['produce']:,.0f} กก.",
-            delta=f"{(decision['produce']/production_capacity)*100:.1f}% ของกำลังการผลิต"
+            delta=f"{(decision['produce']/production_capacity)*100:.1f}% ของกำลังการผลิต" if production_capacity > 0 else "N/A"
         )
     
     with col2:
         st.metric(
             "📦 เก็บใน Stock (รวม)",
             f"{decision['stock_old'] + decision['stock_new']:,.0f} กก.",
-            delta=f"{((decision['stock_old'] + decision['stock_new'])/max_stock)*100:.1f}% ของ Stock สูงสุด"
+            delta=f"{((decision['stock_old'] + decision['stock_new'])/max_stock)*100:.1f}% ของ Stock สูงสุด" if max_stock > 0 else "N/A"
         )
     
     with col3:
@@ -350,10 +357,8 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             delta_color="inverse"
         )
     
-    # แสดงเหตุผล
     st.info(f"**เหตุผล:** {decision['reason']}")
     
-    # แสดง Stock Update (ถ้ามี stock)
     if decision['stock_old'] > 0 or decision['stock_new'] > 0:
         st.markdown("---")
         st.markdown("""
@@ -384,11 +389,10 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             st.metric(
                 "📦 Stock รวมทั้งหมด",
                 f"{total_stock:,.0f} กก.",
-                delta=f"{(total_stock/max_stock)*100:.1f}% ของความจุ",
+                delta=f"{(total_stock/max_stock)*100:.1f}% ของความจุ" if max_stock > 0 else "N/A",
                 help="น้ำยางรวมที่เก็บไว้ทั้งหมด"
             )
         
-        # แสดงรายละเอียด Stock
         st.markdown("**รายละเอียด Stock:**")
         if decision['stock_old'] > 0:
             st.write(f"- 🔹 Stock เดิม: {decision['stock_old']:,.0f} กก. (จากวันก่อนหน้า)")
@@ -396,7 +400,6 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             st.write(f"- 🔹 Stock ใหม่: {decision['stock_new']:,.0f} กก. (เก็บจากน้ำยางวันนี้)")
         st.write(f"- 🔹 พื้นที่ว่างคงเหลือ: {max_stock - total_stock:,.0f} กก.")
     
-    # คำนวณต้นทุนและรายได้
     st.markdown("---")
     st.markdown("""
     <div style='margin-bottom: 1rem;'>
@@ -404,18 +407,12 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
     </div>
     """, unsafe_allow_html=True)
     
-    # ตัวแปรเก็บค่ากำไร
     profit_production = 0
     profit_fresh_sale = 0
-    has_production = False
-    has_disposal = False
     
-    # สำหรับการผลิตแผ่นยาง
     if decision['produce'] > 0 and price_today_plus_4:
-        has_production = True
-        # คำนวณต้นทุนและรายได้
-        cost_production = decision['produce'] * engine.PRODUCTION_COST  # ต้นทุนการผลิต
-        revenue_production = decision['produce'] * price_today_plus_4  # รายได้จากขาย
+        cost_production = decision['produce'] * engine.PRODUCTION_COST
+        revenue_production = decision['produce'] * price_today_plus_4
         profit_production = revenue_production - cost_production
         
         st.write("**📊 การผลิตแผ่นยางรมควัน:**")
@@ -430,9 +427,7 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             st.metric("รายได้สุทธิ", f"{profit_production:,.2f} บาท",
                      delta=f"{profit_production:,.2f} บาท")
     
-    # สำหรับการขายน้ำยางสด
     if decision['dispose'] > 0:
-        has_disposal = True
         transport_cost = engine.calculate_fresh_latex_sale_cost(decision['dispose'])
         fresh_revenue = decision['dispose'] * price_today_fresh
         profit_fresh_sale = fresh_revenue - transport_cost
@@ -447,7 +442,7 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             st.metric("รายได้สุทธิ", f"{profit_fresh_sale:,.2f} บาท",
                      delta=f"{profit_fresh_sale:,.2f} บาท")
     
-    # เปรียบเทียบทางเลือกสำหรับน้ำยางส่วนเกิน (60,000-80,000 กก.)
+    # เปรียบเทียบทางเลือกสำหรับน้ำยางส่วนเกิน
     if decision['produce'] > 0 and price_today_plus_4 and (R_today + current_stock) > production_capacity and (R_today + current_stock) < 80000:
         st.markdown("---")
         st.markdown("""
@@ -456,39 +451,26 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
         </div>
         """, unsafe_allow_html=True)
         
-        # คำนวณน้ำยางส่วนเกิน (นับรวม stock เดิม)
         total_latex = R_today + current_stock
         excess_amount = total_latex - production_capacity
         
-        st.write(f"**🔍 วิเคราะห์สำหรับน้ำยางส่วนเกิน {excess_amount:,.0f} กก.**")
-        st.write("")
+        st.markdown(f"<div class='excess-detail'><p>🔍 วิเคราะห์สำหรับน้ำยางส่วนเกิน {excess_amount:,.0f} กก.</p></div>", unsafe_allow_html=True)
         
         # ===== ทางเลือกที่ 1: เก็บไว้ผลิตในวันถัดไป =====
         if price_today_plus_5:
-            # รายได้
             hold_revenue = excess_amount * price_today_plus_5
-            
-            # ค่าใช้จ่ายเพิ่มเติม (ไม่นับต้นทุนน้ำยาง)
             hold_storage_cost = excess_amount * engine.calculate_storage_cost(1)
             hold_production_cost = excess_amount * engine.PRODUCTION_COST
             hold_additional_cost = hold_storage_cost + hold_production_cost
-            
-            # กำไรสุทธิ = รายได้ - ค่าใช้จ่ายเพิ่มเติม
             hold_profit = hold_revenue - hold_additional_cost
             hold_profit_per_kg = hold_profit / excess_amount
         
         # ===== ทางเลือกที่ 2: ขายน้ำยางสดทันที =====
-        # รายได้
         sell_revenue = excess_amount * price_today_fresh
-        
-        # ค่าใช้จ่ายเพิ่มเติม (เฉพาะค่าขนส่ง)
         sell_transport_cost = engine.calculate_fresh_latex_sale_cost(excess_amount)
-        
-        # กำไรสุทธิ = รายได้ - ค่าขนส่ง
         sell_profit = sell_revenue - sell_transport_cost
         sell_profit_per_kg = sell_profit / excess_amount
         
-        # แสดงการเปรียบเทียบแบบ Side-by-Side
         if price_today_plus_5:
             col_left, col_right = st.columns(2, gap="large")
             
@@ -502,23 +484,25 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
                             margin-bottom: 1rem;'>
                     <h3 style='color: white; margin: 0 0 1rem 0;'>💰 กำไรรวม</h3>
                     <h1 style='color: white; margin: 0; font-size: 2.5rem;'>{hold_profit:,.2f} บาท</h1>
-                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>({hold_profit_per_kg:.2f} บาท/กก.)</p>
+                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1.2rem;'>({hold_profit_per_kg:.2f} บาท/กก.)</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.write("**📝 รายละเอียด:**")
-                st.write(f"- ปริมาณ: {excess_amount:,.0f} กก.")
-                st.write(f"- ราคาขาย: {price_today_plus_5:.2f} บาท/กก.")
-                st.write(f"- รายได้รวม: {hold_revenue:,.2f} บาท")
-                st.write("")
-                st.write("**💸 ค่าใช้จ่ายเพิ่มเติม:**")
-                st.write(f"- ค่าเก็บรักษา 1 วัน: {hold_storage_cost:,.2f} บาท")
-                st.write(f"  ({engine.calculate_storage_cost(1):.2f} บาท/กก.)")
-                st.write(f"- ต้นทุนการผลิต: {hold_production_cost:,.2f} บาท")
-                st.write(f"  ({engine.PRODUCTION_COST:.2f} บาท/กก.)")
-                st.write(f"- **รวมค่าใช้จ่าย: {hold_additional_cost:,.2f} บาท**")
-                st.write("")
-                st.write(f"**🎯 สูตร:** {hold_revenue:,.2f} (รายได้) - {hold_additional_cost:,.2f} (ค่าใช้จ่าย) = **{hold_profit:,.2f} บาท**")
+                st.markdown(f"""
+                <div class='excess-detail'>
+                    <p><span class='section-title'>📝 รายละเอียด:</span></p>
+                    <p>- ปริมาณ: {excess_amount:,.0f} กก.</p>
+                    <p>- ราคาขาย: {price_today_plus_5:.2f} บาท/กก.</p>
+                    <p>- รายได้รวม: {hold_revenue:,.2f} บาท</p>
+                    <br>
+                    <p><span class='section-title'>💸 ค่าใช้จ่ายเพิ่มเติม:</span></p>
+                    <p>- ค่าเก็บรักษา 1 วัน: {hold_storage_cost:,.2f} บาท ({engine.calculate_storage_cost(1):.2f} บาท/กก.)</p>
+                    <p>- ต้นทุนการผลิต: {hold_production_cost:,.2f} บาท ({engine.PRODUCTION_COST:.2f} บาท/กก.)</p>
+                    <p>- รวมค่าใช้จ่าย: {hold_additional_cost:,.2f} บาท</p>
+                    <br>
+                    <p>🎯 สูตร: {hold_revenue:,.2f} (รายได้) - {hold_additional_cost:,.2f} (ค่าใช้จ่าย) = {hold_profit:,.2f} บาท</p>
+                </div>
+                """, unsafe_allow_html=True)
             
             with col_right:
                 st.markdown("### 🚚 ทางเลือกที่ 2: ขายน้ำยางสดทันที")
@@ -530,22 +514,25 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
                             margin-bottom: 1rem;'>
                     <h3 style='color: white; margin: 0 0 1rem 0;'>💰 กำไรรวม</h3>
                     <h1 style='color: white; margin: 0; font-size: 2.5rem;'>{sell_profit:,.2f} บาท</h1>
-                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>({sell_profit_per_kg:.2f} บาท/กก.)</p>
+                    <p style='margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1.2rem;'>({sell_profit_per_kg:.2f} บาท/กก.)</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                st.write("**📝 รายละเอียด:**")
-                st.write(f"- ปริมาณ: {excess_amount:,.0f} กก.")
-                st.write(f"- ราคาขาย: {price_today_fresh:.2f} บาท/กก.")
-                st.write(f"- รายได้รวม: {sell_revenue:,.2f} บาท")
-                st.write("")
-                st.write("**💸 ค่าใช้จ่ายเพิ่มเติม:**")
-                st.write(f"- ค่าขนส่ง: {sell_transport_cost:,.2f} บาท")
-                transport_per_kg = sell_transport_cost / excess_amount
-                st.write(f"  ({transport_per_kg:.2f} บาท/กก.)")
-                st.write(f"- **รวมค่าใช้จ่าย: {sell_transport_cost:,.2f} บาท**")
-                st.write("")
-                st.write(f"**🎯 สูตร:** {sell_revenue:,.2f} (รายได้) - {sell_transport_cost:,.2f} (ค่าขนส่ง) = **{sell_profit:,.2f} บาท**")
+                transport_per_kg = sell_transport_cost / excess_amount if excess_amount > 0 else 0
+                st.markdown(f"""
+                <div class='excess-detail'>
+                    <p><span class='section-title'>📝 รายละเอียด:</span></p>
+                    <p>- ปริมาณ: {excess_amount:,.0f} กก.</p>
+                    <p>- ราคาขาย: {price_today_fresh:.2f} บาท/กก.</p>
+                    <p>- รายได้รวม: {sell_revenue:,.2f} บาท</p>
+                    <br>
+                    <p><span class='section-title'>💸 ค่าใช้จ่ายเพิ่มเติม:</span></p>
+                    <p>- ค่าขนส่ง: {sell_transport_cost:,.2f} บาท ({transport_per_kg:.2f} บาท/กก.)</p>
+                    <p>- รวมค่าใช้จ่าย: {sell_transport_cost:,.2f} บาท</p>
+                    <br>
+                    <p>🎯 สูตร: {sell_revenue:,.2f} (รายได้) - {sell_transport_cost:,.2f} (ค่าขนส่ง) = {sell_profit:,.2f} บาท</p>
+                </div>
+                """, unsafe_allow_html=True)
             
             # สรุปผลเปรียบเทียบ
             st.markdown("---")
@@ -577,7 +564,7 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
                 - 🎯 คำแนะนำ: เลือกได้ตามความสะดวก
                 """)
             
-            # แสดงตารางเปรียบเทียบ
+            # ตารางเปรียบเทียบ
             st.markdown("### 📋 ตารางเปรียบเทียบรายละเอียด")
             comparison_data = {
                 "รายการ": [
@@ -617,26 +604,22 @@ if st.button("🔍 วิเคราะห์และแนะนำการ�
             df_comparison = pd.DataFrame(comparison_data)
             st.dataframe(df_comparison, use_container_width=True, hide_index=True)
         else:
-            # ถ้าไม่มีราคา day+5 แสดงแค่การขายทิ้ง
             st.warning("⚠️ ไม่สามารถเปรียบเทียบได้ เนื่องจากไม่ทราบราคาแผ่นยางวันที่ +5")
             st.write(f"**กำไรจากการขายสดทันที:** {sell_profit:,.2f} บาท ({sell_profit_per_kg:.2f} บาท/กก.)")
     
-    # ถ้ามีการเก็บ stock
+    # ค่าเก็บรักษา Stock
     if decision['stock_old'] > 0 or decision['stock_new'] > 0:
         st.markdown("---")
         st.write("**ค่าเก็บรักษา Stock:**")
         
-        # ค่าเก็บรักษา stock เดิม (นับต่อจากวันที่เคยเก็บ)
         if decision['stock_old'] > 0:
             st.write(f"- Stock เดิม {decision['stock_old']:,.0f} กก.: ต้องเพิ่มค่าเก็บรักษาต่อไปอีก {engine.STORAGE_COST_DAY2_10} บาท/กก./วัน")
         
-        # ค่าเก็บรักษา stock ใหม่
         if decision['stock_new'] > 0:
             storage_cost_day1 = decision['stock_new'] * engine.STORAGE_COST_DAY1
             st.write(f"- Stock ใหม่ {decision['stock_new']:,.0f} กก.: ค่าเก็บรักษาวันแรก {storage_cost_day1:,.2f} บาท")
             st.write(f"  - ค่าเก็บรักษาวันที่ 2-10: {engine.STORAGE_COST_DAY2_10} บาท/กก./วัน")
         
-        # คำนวณจุดคุ้มทุน
         if price_today_plus_5:
             breakeven = engine.calculate_breakeven_price(price_today_fresh, storage_days=1)
             st.write(f"- 📊 ราคาคุ้มทุน (เก็บ 1 วัน): **{breakeven:.2f} บาท/กก.**")
