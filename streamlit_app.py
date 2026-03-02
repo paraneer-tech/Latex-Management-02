@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -177,20 +178,60 @@ engine = LatexDecisionEngine()
 # หัวข้อหลักพร้อมไอคอน
 st.title("🏭 ระบบตัดสินใจการผลิตยางแผ่นรมควัน")
 
+# แสดงวันที่ปัจจุบัน + ปุ่มดาวน์โหลดคู่มือ
+manual_path = "manual.pdf"
 
-# แสดงวันที่ปัจจุบันมุมขวา
-st.markdown(f"""
-<div style='text-align: right; margin-bottom: 1rem;'>
-    <span style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                 color: white; 
-                 padding: 0.5rem 1.5rem; 
-                 border-radius: 20px; 
-                 font-weight: 600;
-                 font-size: 1rem;'>
-        📅 {datetime.now().strftime('%d/%m/%Y')}
-    </span>
-</div>
+st.markdown("""
+<style>
+div[data-testid="stDownloadButton"] {
+    display: flex;
+    justify-content: flex-end;
+}
+div[data-testid="stDownloadButton"] button {
+    background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 0.5rem 1.5rem !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    width: auto !important;
+}
+div[data-testid="stDownloadButton"] button:hover {
+    background: linear-gradient(135deg, #d97706 0%, #c2410c 100%) !important;
+    transform: none !important;
+}
+</style>
 """, unsafe_allow_html=True)
+
+col_spacer, col_right = st.columns([6, 4])
+
+with col_right:
+    if os.path.exists(manual_path):
+        with open(manual_path, "rb") as f:
+            pdf_bytes = f.read()
+        st.download_button(
+            label="📄 Manual for Download",
+            data=pdf_bytes,
+            file_name="manual.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+    else:
+        st.warning("ไม่พบไฟล์คู่มือ")
+
+    st.markdown(f"""
+    <div style='text-align: right;'>
+        <span style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                     color: white; 
+                     padding: 0.5rem 1.5rem; 
+                     border-radius: 20px; 
+                     font-weight: 600;
+                     font-size: 1rem;'>
+            📅 {datetime.now().strftime('%d/%m/%Y')}
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("---")
 
