@@ -179,7 +179,7 @@ engine = LatexDecisionEngine()
 st.title("🏭 ระบบตัดสินใจการผลิตยางแผ่นรมควัน")
 
 # แสดงวันที่ปัจจุบัน + ปุ่มดาวน์โหลดคู่มือ
-manual_path = "manual.pdf"
+manual_path = "Manual.pdf"
 
 st.markdown("""
 <style>
