@@ -110,7 +110,7 @@ pip install -r requirments.txt
 streamlit run streamlit_app.py
 ```
 
-เว็บแอปจะเปิดที่: `http://localhost:8502`
+เว็บแอปจะเปิดที่: `http://localhost:8501`
 
 ---
 
